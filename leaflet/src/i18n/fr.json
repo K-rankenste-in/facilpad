@@ -5,5 +5,16 @@
         "hobi-name": "Carte des randonnées pédestres et cyclistes",
         "trto-name": "Tracestrack Topo",
         "trto-attribution": "© [OSM contributors](https://www.openstreetmap.org/copyright), [SRTM](http://viewfinderpanoramas.org/), [GEBCO](https://www.gebco.net/), [SONNY's LiDAR DTM](https://sonny.4lima.de/), [NASADEM](https://portal.opentopography.org/datasetMetadata?otCollectionID=OT.032021.4326.2), [ESA WorldCover](https://worldcover2021.esa.int/); Maps © [Tracestrack](https://www.tracestrack.com/)"
+    },
+    "overpass-presets": {
+        "worship": "Lieu de culte",
+        "church": "Église",
+        "mosque": "Mosquée",
+        "buddhist": "Temple bouddhiste",
+        "hindu": "Temple hindou",
+        "gallery": "Galerie",
+        "watertap": "Fontaine à eau",
+        "cave": "Grotte",
+        "monumentaltree": "Arbre remarquable"
     }
 }
