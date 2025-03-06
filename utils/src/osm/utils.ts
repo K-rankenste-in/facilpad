@@ -1,7 +1,11 @@
-import type { Point } from "facilmap-types";
+import type { Bbox, Colour, Point } from "facilmap-types";
 import { groupBy, orderBy, sortBy } from "lodash-es";
 import * as OSM from "osm-api";
 import { sendProgress, type OnProgress } from "../utils";
+
+export function getFeatureKey(feature: OSM.OsmFeature): string {
+	return `${feature.type}-${feature.id}`;
+}
 
 /**
  * Fetches the content of a changeset and removes double entries.
@@ -88,8 +92,9 @@ export async function getPreviousVersions(modified: OSM.OsmFeature[], onProgress
 	return result;
 }
 
-export function getFeatureAtTimestamp<T extends OSM.OsmFeature>(history: T[], date: Date): T | undefined {
-	return orderBy(history, "timestamp", "desc").find((f) => new Date(f.timestamp) <= date);
+export function getFeatureAtTimestamp<T extends OSM.OsmFeature>(history: T[], date: Date | undefined): T | undefined {
+	const ordered = orderBy(history, "timestamp", "desc");
+	return date ? ordered.find((f) => new Date(f.timestamp) <= date) : ordered[0];
 }
 
 export type NodeListSegment = [OSM.OsmNode, OSM.OsmNode];
@@ -115,4 +120,37 @@ export function segmentsToMultiPolyline(segments: NodeListSegment[]): Point[][] 
 		lastPoint = segment[1];
 	}
 	return result;
+}
+
+async function _getRelationRecursive(relationId: number, _handled: Set<number>): Promise<OSM.OsmFeature[]> {
+	const features = await OSM.getFeature("relation", relationId, true);
+	for (const feature of features) {
+		if (feature.type === "relation" && !_handled.has(relationId)) {
+			features.push(...await _getRelationRecursive(relationId, _handled));
+		}
+	}
+	return features;
+}
+
+export async function getRelationRecursive(relationId: number): Promise<{ relation: OSM.OsmRelation; features: OSM.OsmFeature[] }> {
+	const features = await _getRelationRecursive(relationId, new Set<number>());
+
+	// Drop duplicates
+	const featureMap = new Map(features.map((f) => [`${f.type}-${f.id}`, f]));
+	return {
+		relation: featureMap.get(`relation-${relationId}`) as OSM.OsmRelation,
+		features: [...featureMap.values()]
+	};
+}
+
+export function getBboxForNodeList(nodes: Point[]): Bbox {
+	const allLats = nodes.map((n) => n.lat);
+	const allLons = nodes.map((n) => n.lon);
+
+	return {
+		bottom: Math.min(...allLats),
+		top: Math.max(...allLats),
+		left: Math.min(...allLons),
+		right: Math.max(...allLons)
+	};
 }

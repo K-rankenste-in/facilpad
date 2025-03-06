@@ -5,6 +5,7 @@ export * from "./format.js";
 export * from "./i18n.js";
 export * from "./i18n-utils.js";
 export * from "./objects.js";
+export * from "./osm/feature-blame.js";
 export * from "./osm/changeset.js";
 export * from "./osm/utils.js";
 export * from "./maps.js";

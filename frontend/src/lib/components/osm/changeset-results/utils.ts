@@ -1,5 +1,5 @@
 import { getOsmFeatureName, type ChangesetFeature } from "facilmap-utils";
-import { getI18n } from "../../utils/i18n";
+import { getI18n } from "../../../utils/i18n";
 import type { OsmFeatureType } from "osm-api";
 
 export function getOsmObjectLabel(type: OsmFeatureType, id: number): string {

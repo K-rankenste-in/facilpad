@@ -12,6 +12,8 @@ export * from "./lines/lines-layer";
 export { default as MarkerCluster } from "./markers/marker-cluster";
 export { default as MarkerLayer } from "./markers/marker-layer";
 export { default as MarkersLayer } from "./markers/markers-layer";
+export { default as ChangesetLayer } from "./osm/changeset-layer";
+export * from "./osm/changeset-layer";
 export { default as RouteDragHandler } from "./routes/route-drag-handler";
 export { default as RouteLayer } from "./routes/route-layer";
 export { default as SearchResultGeoJSON } from "./search/search-result-geojson";

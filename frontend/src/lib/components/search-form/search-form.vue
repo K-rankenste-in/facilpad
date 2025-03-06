@@ -1,6 +1,6 @@
 <script setup lang="ts">
 	import Icon from "../ui/icon.vue";
-	import { find, getCurrentLanguage, getElevationForPoint, isSearchId, parseUrlQuery, loadDirectUrlQuery, type AnalyzedChangeset } from "facilmap-utils";
+	import { find, getCurrentLanguage, getElevationForPoint, isSearchId, parseUrlQuery, loadDirectUrlQuery, type AnalyzedChangeset, type OsmFeatureBlame } from "facilmap-utils";
 	import { useToasts } from "../ui/toasts/toasts.vue";
 	import type { Bbox, FindOnMapResult, SearchResult } from "facilmap-types";
 	import SearchResults from "../search-results/search-results.vue";
@@ -11,7 +11,7 @@
 	import type { HashQuery } from "facilmap-leaflet";
 	import { type FileResultObject, parseFiles } from "../../utils/files";
 	import FileResults from "../file-results.vue";
-	import ChangesetResults from "../changeset-results/changeset-results.vue";
+	import ChangesetResults from "../osm/changeset-results/changeset-results.vue";
 	import { computed, reactive, ref, watch } from "vue";
 	import DropdownMenu from "../ui/dropdown-menu.vue";
 	import { injectContextRequired, requireClientContext, requireMapContext } from "../facil-map-context-provider/facil-map-context-provider.vue";
@@ -39,21 +39,32 @@
 	let loadingSearchAbort: AbortController | undefined = undefined;
 	const loadedSearchString = ref<string>();
 
-	const searchResults = ref<SearchResult[]>();
-	const mapResults = ref<FindOnMapResult[]>();
-	const fileResult = ref<FileResultObject>();
-	const changesetResult = ref<AnalyzedChangeset>();
-	const changesetZoomDestination = ref<ZoomDestination>();
+	const result = ref<{
+		type: "search";
+		search: SearchResult[];
+		map?: FindOnMapResult[];
+	} | {
+		type: "file";
+		file: FileResultObject;
+	} | {
+		type: "changeset";
+		changeset: AnalyzedChangeset;
+	} | {
+		type: "blame";
+		blame: OsmFeatureBlame;
+	}>();
+	const preloadedZoomDestination = ref<ZoomDestination>();
 
 	const zoomDestination = computed(() => {
-		if (changesetZoomDestination.value) {
-			return changesetZoomDestination.value;
-		} else {
+		if (preloadedZoomDestination.value) {
+			return preloadedZoomDestination.value;
+		} else if (result.value?.type === "search") {
 			return getZoomDestinationForResults([
-				...(searchResults.value || []),
-				...(mapResults.value || []),
-				...(fileResult.value?.features || [])
+				...result.value.search,
+				...result.value.map ?? []
 			]);
+		} else if (result.value?.type === "file") {
+			return getZoomDestinationForResults(result.value.file.features);
 		}
 	});
 
@@ -116,7 +127,7 @@
 								onProgress,
 								onBbox: (bbox: Bbox) => {
 									if (!signal.aborted) {
-										changesetZoomDestination.value = getZoomDestinationForBbox(bbox);
+										preloadedZoomDestination.value = getZoomDestinationForBbox(bbox);
 										if (zoom) {
 											zoomToAllResults(smooth);
 										}
@@ -154,16 +165,30 @@
 								const parsed = await mapContext.value.runOperation(async () => await parseFiles([ new TextEncoder().encode(newSearchResults) ]));
 								if (signal.aborted)
 									return; // Another search has been started in the meantime
-								fileResult.value = parsed;
-								mapContext.value.components.searchResultsLayer.setResults(fileResult.value.features);
+								result.value = {
+									type: "file",
+									file: parsed
+								};
+								mapContext.value.components.searchResultsLayer.setResults(result.value.file.features);
 							} else if ("changeset" in newSearchResults) {
-								changesetResult.value = newSearchResults;
+								result.value = {
+									type: "changeset",
+									changeset: newSearchResults
+								};
 								mapContext.value.components.changesetLayer.setChangeset(newSearchResults);
+							} else if ("feature" in newSearchResults) {
+								result.value = {
+									type: "blame",
+									blame: newSearchResults
+								};
 							} else {
 								const reactiveResults = reactive(newSearchResults);
-								searchResults.value = reactiveResults;
+								result.value = {
+									type: "search",
+									search: reactiveResults,
+									map: newMapResults ?? undefined
+								};
 								mapContext.value.components.searchResultsLayer.setResults(newSearchResults);
-								mapResults.value = newMapResults ?? undefined;
 
 								const points = newSearchResults.filter((res) => (res.lon && res.lat));
 								if(points.length > 0) {
@@ -188,18 +213,18 @@
 					}
 				}
 
-				if (zoomToAll || (zoomToAll == null && (searchResults.value?.length ?? 0) + (mapResults.value?.length ?? 0) > 1)) {
+				if (zoomToAll || (zoomToAll == null && result.value?.type === "search" && result.value.search.length + (result.value.map?.length ?? 0) > 1)) {
 					if (zoom)
 						zoomToAllResults(smooth);
-				} else if (mapResults.value && mapResults.value.length > 0 && (mapResults.value[0].similarity == 1 || (!searchResults.value || searchResults.value.length == 0))) {
-					mapContext.value.components.selectionHandler.setSelectedItems([{ type: mapResults.value[0].kind, id: mapResults.value[0].id }])
+				} else if (result.value?.type === "search" && result.value.map && result.value.map.length > 0 && (result.value.map[0].similarity == 1 || result.value.search.length === 0)) {
+					mapContext.value.components.selectionHandler.setSelectedItems([{ type: result.value.map[0].kind, id: result.value.map[0].id }])
 					if (zoom)
-						zoomToResult(mapResults.value[0], smooth);
-				} else if (searchResults.value && searchResults.value.length > 0) {
-					mapContext.value.components.selectionHandler.setSelectedItems([{ type: "searchResult", result: searchResults.value[0], layerId }]);
+						zoomToResult(result.value.map[0], smooth);
+				} else if (result.value?.type === "search" && result.value.search.length > 0) {
+					mapContext.value.components.selectionHandler.setSelectedItems([{ type: "searchResult", result: result.value.search[0], layerId }]);
 					if (zoom)
-						zoomToResult(searchResults.value[0], smooth);
-				} else if (fileResult.value) {
+						zoomToResult(result.value.search[0], smooth);
+				} else if (result.value?.type === "file") {
 					if (zoom)
 						zoomToAllResults(smooth);
 				}
@@ -217,11 +242,8 @@
 		loadingSearchProgress.value = undefined;
 		loadingSearchAbort = undefined;
 		loadedSearchString.value = undefined;
-		searchResults.value = undefined;
-		mapResults.value = undefined;
-		fileResult.value = undefined;
-		changesetResult.value = undefined;
-		changesetZoomDestination.value = undefined;
+		result.value = undefined;
+		preloadedZoomDestination.value = undefined;
 		mapContext.value.components.searchResultsLayer.setResults([]);
 		mapContext.value.components.changesetLayer.setChangeset(undefined);
 	};
@@ -255,7 +277,7 @@
 					<Icon icon="search" :alt="i18n.t('search-form.search-alt')"></Icon>
 				</button>
 				<button
-					v-if="loadingSearchString != null || searchResults || mapResults || fileResult || changesetResult"
+					v-if="loadingSearchString != null || result"
 					type="button"
 					class="btn btn-secondary"
 					@click="reset()"
@@ -300,25 +322,25 @@
 		</div>
 
 		<FileResults
-			v-if="fileResult"
-			:file="fileResult"
+			v-if="result?.type === 'file'"
+			:file="result.file"
 			:auto-zoom="storage.autoZoom"
 			:union-zoom="storage.zoomToAll"
 			:layer-id="layerId"
 		/>
-		<template v-else-if="changesetResult">
+		<template v-else-if="result?.type === 'changeset'">
 			<hr />
 			<ChangesetResults
-				:changeset="changesetResult"
+				:changeset="result.changeset"
 				:auto-zoom="storage.autoZoom"
 				:union-zoom="storage.zoomToAll"
 				:layer-id="layerId"
 			/>
 		</template>
 		<SearchResults
-			v-else-if="searchResults || mapResults"
-			:search-results="searchResults"
-			:map-results="mapResults"
+			v-else-if="result?.type === 'search'"
+			:search-results="result.search"
+			:map-results="result.map"
 			:auto-zoom="storage.autoZoom"
 			:union-zoom="storage.zoomToAll"
 			:layer-id="layerId"

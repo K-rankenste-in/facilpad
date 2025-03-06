@@ -1,5 +1,5 @@
 import { intersectionBy, memoize, pullAllBy } from "lodash-es";
-import { getFeatureAtTimestamp, getFixedChangesetDiff, getPreviousVersions, nodeListToSegments, segmentsToMultiPolyline, type NodeListSegment } from "./utils";
+import { getBboxForNodeList, getFeatureAtTimestamp, getFixedChangesetDiff, getPreviousVersions, nodeListToSegments, segmentsToMultiPolyline, type NodeListSegment } from "./utils";
 import * as OSM from "osm-api";
 import type { DistributedPick } from "../types";
 import type { Bbox, Point } from "facilmap-types";
@@ -148,7 +148,7 @@ export async function analyzeChangeset(changesetId: number, onProgress?: OnProgr
 	});
 
 	if (!hasBbox) {
-		const allNodes = features.flatMap((f) => {
+		const bbox = getBboxForNodeList(features.flatMap((f) => {
 			if (f.type === "node") {
 				return [...f.old ? [f.old] : [], ...f.new ? [f.new] : []];
 			} else if (f.type === "way") {
@@ -156,16 +156,14 @@ export async function analyzeChangeset(changesetId: number, onProgress?: OnProgr
 			} else {
 				return [];
 			}
-		});
-		const allLats = allNodes.map((n) => n.lat);
-		const allLons = allNodes.map((n) => n.lon);
+		}));
 
-		changeset.min_lat = Math.min(...allLats);
-		changeset.max_lat = Math.max(...allLats);
-		changeset.min_lon = Math.min(...allLons);
-		changeset.max_lon = Math.max(...allLons);
+		changeset.min_lat = bbox.bottom;
+		changeset.max_lat = bbox.top;
+		changeset.min_lon = bbox.left;
+		changeset.max_lon = bbox.right;
 
-		onProgress?.onBbox?.({ top: changeset.max_lat, left: changeset.min_lon, bottom: changeset.min_lat, right: changeset.max_lon });
+		onProgress?.onBbox?.(bbox);
 	}
 
 	return { changeset, features };

@@ -1,6 +1,6 @@
 import type { Colour, Point, Shape } from "facilmap-types";
 import { FeatureGroup, Layer, type LayerOptions, type PathOptions } from "leaflet";
-import MarkerLayer from "./markers/marker-layer";
+import MarkerLayer from "../markers/marker-layer";
 import type { AnalyzedChangeset, ChangesetFeature } from "facilmap-utils";
 import { HighlightablePolyline } from "leaflet-highlightable-layers";
 
@@ -14,13 +14,12 @@ function getFeatureKey(feature: ChangesetFeature | string): string {
 	return typeof feature === "string" ? feature : `${feature.type}-${feature.id}`;
 }
 
-interface ChangesetLayerOptions extends LayerOptions {
+export interface ChangesetLayerOptions extends LayerOptions {
 	deletedColour?: Colour;
 	createdColour?: Colour;
 	unchangedColour?: Colour;
 	markerSize?: number;
 	markerShape?: Shape;
-	lineWidth?: number;
 	pathOptions?: PathOptions;
 }
 
@@ -104,10 +103,10 @@ export default class ChangesetLayer extends FeatureGroup {
 
 	createWayLayer(path: Point[], colour: Colour, highlight: boolean): Layer {
 		return new HighlightablePolyline(path.map((p) => [p.lat, p.lon]), {
-			weight: this.options.lineWidth,
 			color: `#${colour}`,
 			raised: highlight,
-			opacity: highlight ? 1 : 0.35
+			opacity: highlight ? 1 : 0.35,
+			...this.options.pathOptions
 		});
 	}
 

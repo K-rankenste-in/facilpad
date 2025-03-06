@@ -1,13 +1,13 @@
 <script setup lang="ts">
-	import { useI18n } from "../../utils/i18n";
+	import { useI18n } from "../../../utils/i18n";
 	import { renderOsmTag, type AnalyzedChangeset, type ChangesetFeature } from "facilmap-utils";
 	import { computed, ref, toRaw, watch } from "vue";
-	import { useCarousel } from "../../utils/carousel";
+	import { useCarousel } from "../../../utils/carousel";
 	import { injectContextRequired, requireMapContext } from "../facil-map-context-provider/facil-map-context-provider.vue";
 	import Icon from "../ui/icon.vue";
-	import vTooltip from "../../utils/tooltip";
-	import { vScrollIntoView } from "../../utils/vue";
-	import { combineZoomDestinations, flyTo, getZoomDestinationForChangeset, getZoomDestinationForChangesetFeature } from "../../utils/zoom";
+	import vTooltip from "../../../utils/tooltip";
+	import { vScrollIntoView } from "../../../utils/vue";
+	import { combineZoomDestinations, flyTo, getZoomDestinationForChangeset, getZoomDestinationForChangesetFeature } from "../../../utils/zoom";
 	import ZoomToObjectButton from "../ui/zoom-to-object-button.vue";
 	import ChangesetFeatureInfo from "./changeset-feature-info.vue";
 	import { getChangesetFeatureLabel } from "./utils";

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 	import { renderOsmTag, type ChangesetFeature } from 'facilmap-utils';
 	import { getChangesetFeatureLabel, getOsmObjectLabel } from './utils';
-	import { useI18n } from '../../utils/i18n';
+	import { useI18n } from '../../../utils/i18n';
 	import Icon from '../ui/icon.vue';
 	import ChangesetOldNew from './changeset-old-new.vue';
 	import ZoomToObjectButton from '../ui/zoom-to-object-button.vue';
-	import { getZoomDestinationForChangesetFeature } from '../../utils/zoom';
+	import { getZoomDestinationForChangesetFeature } from '../../../utils/zoom';
 	import { computed } from 'vue';
 	import Coordinates from '../ui/coordinates.vue';
-	import vTooltip from '../../utils/tooltip';
+	import vTooltip from '../../../utils/tooltip';
 
 	const props = withDefaults(defineProps<{
 		feature: ChangesetFeature;

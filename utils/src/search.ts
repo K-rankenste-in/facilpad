@@ -7,6 +7,7 @@ import { getI18n } from "./i18n.js";
 import { parseGpsCoordinates } from "parse-gps-coordinates";
 import type { AnalyzedChangeset } from "./osm/changeset.js";
 import { validateResponse, type OnProgress } from "./utils.js";
+import type { OsmFeatureBlame } from "./osm/feature-blame";
 
 interface NominatimResult {
 	place_id: number;
@@ -184,7 +185,7 @@ export function isSearchId(string: string | undefined): boolean {
  * If the search query is a URL for which this is supported, loads the content of the URL through a direct fetch request.
  * Otherwise returns undefined.
  */
-export async function loadDirectUrlQuery(query: string, onProgress?: OnProgress & { onBbox?: (bbox: Bbox) => void }): Promise<string | AnalyzedChangeset | undefined> {
+export async function loadDirectUrlQuery(query: string, onProgress?: OnProgress & { onBbox?: (bbox: Bbox) => void }): Promise<string | AnalyzedChangeset | OsmFeatureBlame | undefined> {
 	query = query.trim();
 
 	let m = query.match(/^(node|way|relation)\s+(\d+)$/);
@@ -201,6 +202,12 @@ export async function loadDirectUrlQuery(query: string, onProgress?: OnProgress 
 	if (m) {
 		const { analyzeChangeset } = await import("./osm/changeset");
 		return await analyzeChangeset(Number(m[1]), onProgress);
+	}
+
+	m = query.match(/^blame\s+(way|relation)\s+(\d+)$/);
+	if (m) {
+		const { blameOsmFeature } = await import("./osm/feature-blame");
+		return await blameOsmFeature(m[1] as "way" | "relation", Number(m[2]), onProgress);
 	}
 }
 

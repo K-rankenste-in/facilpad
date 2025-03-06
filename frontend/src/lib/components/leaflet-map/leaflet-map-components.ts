@@ -21,7 +21,7 @@ import { AttributionControl } from "./attribution";
 import { isNarrowBreakpoint } from "../../utils/bootstrap";
 import { useWakeLock } from "../../utils/wake-lock";
 import storage from "../../utils/storage";
-import ChangesetLayer from "facilmap-leaflet/src/changeset-layer";
+import ChangesetLayer from "facilmap-leaflet";
 
 type MapContextWithoutComponents = Optional<WritableMapContext, 'components'>;
 
@@ -366,7 +366,7 @@ function useSearchResultsLayer(map: Ref<Map>): Ref<Raw<SearchResultsLayer>> {
 function useChangesetLayer(map: Ref<Map>): Ref<Raw<ChangesetLayer>> {
 	return useMapComponent(
 		map,
-		() => markRaw(new ChangesetLayer(undefined, { lineWidth: 7 })),
+		() => markRaw(new ChangesetLayer(undefined, { pathOptions: { weight: 7 } })),
 		(changesetLayer, map) => {
 			changesetLayer.addTo(map);
 			onScopeDispose(() => {

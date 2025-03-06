@@ -3,7 +3,7 @@ import { DomEvent, Evented, Handler, type LatLngBounds, type LeafletEvent, type 
 import { LinesLayer, MarkerLayer, MarkersLayer, type OverpassElement, OverpassLayer, SearchResultsLayer } from "facilmap-leaflet";
 import BoxSelection from "./box-selection";
 import type { DeepReadonly } from "vue";
-import type ChangesetLayer from "facilmap-leaflet/src/changeset-layer";
+import type ChangesetLayer from "facilmap-leaflet";
 import type { ChangesetFeature } from "facilmap-utils";
 
 export type SelectedItem = {
